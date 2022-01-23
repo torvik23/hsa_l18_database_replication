@@ -1,0 +1,12 @@
+# This is the configuration file for the Master
+[mysqld]
+
+skip-host-cache
+skip-name-resolve
+
+# Server ID of the Master
+server-id = 1
+
+log_bin = /var/log/mysql/mysql-bin.log
+binlog_format = ROW
+binlog_do_db = hsa_l18

@@ -1,0 +1,80 @@
+version: '3.8'
+
+networks:
+  backend:
+    driver: ${NETWORKS_DRIVER}
+volumes:
+  mysql_master:
+    driver: ${VOLUMES_DRIVER}
+  mysql_slave1:
+    driver: ${VOLUMES_DRIVER}
+  mysql_slave2:
+    driver: ${VOLUMES_DRIVER}
+services:
+  mysql_master:
+    image: mysql:5.7
+    container_name: mysql_master
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_MASTER_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./docker/mysql/master.cnf:/etc/mysql/my.cnf
+      - ./volume/log/mysql_master:/var/log/mysql
+      - ./volume/data/mysql_master:/var/lib/mysql
+    ports:
+      - "${MYSQL_MASTER_PORT}:3306"
+    networks:
+      - backend
+  mysql_slave1:
+    image: mysql:5.7
+    container_name: mysql_slave1
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_SLAVE_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      - mysql_master
+    volumes:
+      - ./volume/log/mysql_slave1:/var/log/mysql
+      - ./volume/data/mysql_slave1:/var/lib/mysql
+      - ./docker/mysql/slave_1.cnf:/etc/mysql/my.cnf
+    ports:
+      - "${MYSQL_SLAVE1_PORT}:3306"
+    networks:
+      - backend
+  mysql_slave2:
+    image: mysql:5.7
+    container_name: mysql_slave2
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_SLAVE_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      - mysql_master
+    volumes:
+      - ./volume/log/mysql_slave2:/var/log/mysql
+      - ./volume/data/mysql_slave2:/var/lib/mysql
+      - ./docker/mysql/slave_2.cnf:/etc/mysql/my.cnf
+    ports:
+      - "${MYSQL_SLAVE2_PORT}:3306"
+    networks:
+      - backend
+  runner:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_REPLICATION_USER=${MYSQL_REPLICATION_USER}
+      - MYSQL_REPLICATION_PASSWORD=${MYSQL_REPLICATION_PASSWORD}
+    volumes:
+      - ./mysql_runner.sh:/tmp/mysql_runner.sh
+    command: /bin/bash -x /tmp/mysql_runner.sh
+    depends_on:
+      - mysql_master
+      - mysql_slave1
+      - mysql_slave2
+    networks:
+      - backend
